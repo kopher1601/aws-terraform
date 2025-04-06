@@ -22,8 +22,65 @@ module "ec2-instance" {
 
   name = "LuckyInstance"
 
-  instance_type          = "t2.micro"
-  user_data = local.user_data
+  instance_type = "t2.micro"
+  user_data     = local.user_data
+}
+
+# Autoscaling
+module "autoscaling" {
+  source  = "terraform-aws-modules/autoscaling/aws"
+  version = "8.2.0"
+  name = "LuckyASG"
+
+  launch_template_id = aws_launch_template.webapp.id
+
+
+  desired_capacity = 2
+  min_size = 2
+  max_size = 4
+
+  traffic_source_attachments = {
+    lucky-alb = {
+      traffic_source_identifier = module.alb.target_groups["lucky-instnace"].arn
+      traffic_source_type = "elbv2"
+    }
+  }
+
+  scaling_policies = {
+    lucky-scaling-policy = {
+      policy_type               = "TargetTrackingScaling"
+      target_tracking_configuration = {
+        predefined_metric_specification = {
+          predefined_metric_type = "ASGAverageCPUUtilization"
+          resource_label         = "lucky-scaling"
+        }
+        target_value = 20.0
+      }
+    }
+  }
+
+  tags = {
+    Name = "LuckyInstance"
+  }
+}
+
+# AMI
+resource "aws_ami_from_instance" "webapp" {
+  name               = "LuckyAMI"
+  source_instance_id = module.ec2-instance.id
+}
+
+# Launch Template
+resource "aws_launch_template" "webapp" {
+  name            = "LuckyLT"
+  default_version = "1"
+
+  image_id      = aws_ami_from_instance.webapp.id
+  instance_type = "t2.nano"
+  security_group_names = [
+    module.lucky-webapp-sg.security_group_name
+  ]
+
 }
 
 # SG
@@ -71,9 +128,9 @@ module "lucky-alb-sg" {
 module "alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "9.15.0"
-  name = "LuckyALB"
+  name    = "LuckyALB"
 
-  vpc_id = data.aws_vpc.default.id
+  vpc_id  = data.aws_vpc.default.id
   subnets = ["default"]
   security_groups = [
     module.lucky-alb-sg.security_group_id
@@ -92,7 +149,7 @@ module "alb" {
   target_groups = {
     lucky-instnace = {
       target_type = "instance"
-      target_id = module.ec2-instance.id
+      target_id   = module.ec2-instance.id
     }
   }
 
