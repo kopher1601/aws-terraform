@@ -30,19 +30,19 @@ module "ec2-instance" {
 module "autoscaling" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "8.2.0"
-  name = "LuckyASG"
+  name    = "LuckyASG"
 
   launch_template_id = aws_launch_template.webapp.id
 
 
   desired_capacity = 2
-  min_size = 2
-  max_size = 4
+  min_size         = 2
+  max_size         = 4
 
   traffic_source_attachments = {
     lucky-alb = {
       traffic_source_identifier = module.alb.target_groups["lucky-instnace"].arn
-      traffic_source_type = "elbv2"
+      traffic_source_type       = "elbv2"
     }
   }
 
@@ -52,7 +52,7 @@ module "autoscaling" {
 
   scaling_policies = {
     lucky-scaling-policy = {
-      policy_type               = "TargetTrackingScaling"
+      policy_type = "TargetTrackingScaling"
       target_tracking_configuration = {
         predefined_metric_specification = {
           predefined_metric_type = "ASGAverageCPUUtilization"
@@ -174,15 +174,15 @@ module "lucky-rds-sg" {
 }
 
 module "rds" {
-  source  = "terraform-aws-modules/rds/aws"
-  version = "6.11.0"
+  source     = "terraform-aws-modules/rds/aws"
+  version    = "6.11.0"
   identifier = "luckydb"
 
-  engine            = "mariadb"
-  engine_version    = "11.4.4"
+  engine               = "mariadb"
+  engine_version       = "11.4.4"
   major_engine_version = "11.4"
-  instance_class    = "db.t3.micro"
-  family = "mariadb11.4"
+  instance_class       = "db.t3.micro"
+  family               = "mariadb11.4"
 
   storage_type = "gp2"
 
