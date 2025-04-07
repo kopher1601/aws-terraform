@@ -46,6 +46,10 @@ module "autoscaling" {
     }
   }
 
+  vpc_zone_identifier = [
+    data.aws_vpc.default.id
+  ]
+
   scaling_policies = {
     lucky-scaling-policy = {
       policy_type               = "TargetTrackingScaling"
@@ -152,5 +156,55 @@ module "alb" {
       target_id   = module.ec2-instance.id
     }
   }
+
+}
+
+
+# RDS
+module "lucky-rds-sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "5.3.0"
+
+  name        = "LuckyDB-SG"
+  description = "Allow HTTP, HTTPS"
+  ingress_rules = [
+    "mysql-tcp"
+  ]
+
+}
+
+module "rds" {
+  source  = "terraform-aws-modules/rds/aws"
+  version = "6.11.0"
+  identifier = "luckydb"
+
+  engine            = "mariadb"
+  engine_version    = "11.4.4"
+  major_engine_version = "11.4"
+  instance_class    = "db.t3.micro"
+  family = "mariadb11.4"
+
+  storage_type = "gp2"
+
+  db_name  = "luckydb"
+  username = "admin"
+  port     = "3306"
+
+  vpc_security_group_ids = [
+    module.lucky-rds-sg.security_group_id
+  ]
+
+  parameters = [
+    {
+      name  = "character_set_client"
+      value = "utf8mb4"
+    },
+    {
+      name  = "character_set_server"
+      value = "utf8mb4"
+    }
+  ]
+
+  options = []
 
 }
